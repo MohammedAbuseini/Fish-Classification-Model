@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐠 Fish Species Classifier</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .underwater-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, 
+                #001f3f 0%, 
+                #003d5c 30%, 
+                #005f73 60%, 
+                #0a9396 100%);
+            z-index: -1;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            animation: rise 15s infinite ease-in;
+        }
+
+        @keyframes rise {
+            0% { bottom: -100px; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { bottom: 110vh; opacity: 0; }
+        }
+
+        .swimming-fish {
+            position: absolute;
+            font-size: 30px;
+            animation: swim 20s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes swim {
+            0% { left: -50px; transform: scaleX(1); }
+            48% { transform: scaleX(1); }
+            50% { left: 105%; transform: scaleX(1); }
+            52% { transform: scaleX(-1); }
+            98% { transform: scaleX(-1); }
+            100% { left: -50px; transform: scaleX(-1); }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            animation: fadeIn 1s ease-in;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .upload-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #0a9396;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+        }
+
+        .upload-area:hover {
+            border-color: #005f73;
+            background: linear-gradient(135deg, #b2ebf2 0%, #80deea 100%);
+            transform: scale(1.02);
+        }
+
+        .upload-area.dragover {
+            border-color: #003d5c;
+            background: #80deea;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            color: #003d5c;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .upload-hint {
+            color: #005f73;
+            font-size: 0.95rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #0a9396 0%, #005f73 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(10, 147, 150, 0.4);
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(10, 147, 150, 0.6);
+        }
+
+        .btn:disabled {
+            background: linear-gradient(135deg, #ccc 0%, #999 100%);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .preview-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .preview-image {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            margin: 0 auto;
+            display: block;
+        }
+
+        .results-section {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            margin-top: 30px;
+        }
+
+        .result-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .final-prediction {
+            font-size: 2.5rem;
+            color: #003d5c;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .binary-result {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+            color: #003d5c;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #0a9396 0%, #005f73 100%);
+        }
+
+        .model-predictions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .model-card {
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .model-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .model-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #003d5c;
+            margin-bottom: 10px;
+        }
+
+        .model-result {
+            color: #005f73;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .confidence-bar {
+            height: 10px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0a9396 0%, #005f73 100%);
+            transition: width 1s ease;
+            border-radius: 10px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(10, 147, 150, 0.2);
+            border-top: 4px solid #0a9396;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 15px;
+            color: #0a9396;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .alert-error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .upload-section { padding: 20px; }
+            .final-prediction { font-size: 1.8rem; }
+            .model-predictions { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="underwater-bg">
+        <div class="bubble" style="left: 10%; width: 20px; height: 20px; animation-delay: 0s;"></div>
+        <div class="bubble" style="left: 20%; width: 15px; height: 15px; animation-delay: 2s;"></div>
+        <div class="bubble" style="left: 35%; width: 25px; height: 25px; animation-delay: 4s;"></div>
+        <div class="bubble" style="left: 50%; width: 18px; height: 18px; animation-delay: 1s;"></div>
+        <div class="bubble" style="left: 65%; width: 22px; height: 22px; animation-delay: 3s;"></div>
+        <div class="bubble" style="left: 80%; width: 16px; height: 16px; animation-delay: 5s;"></div>
+        <div class="bubble" style="left: 90%; width: 20px; height: 20px; animation-delay: 2.5s;"></div>
+        <div class="swimming-fish" style="top: 15%; animation-duration: 25s;">🐠</div>
+        <div class="swimming-fish" style="top: 35%; animation-duration: 20s; animation-delay: 5s;">🐟</div>
+        <div class="swimming-fish" style="top: 55%; animation-duration: 30s; animation-delay: 10s;">🐡</div>
+        <div class="swimming-fish" style="top: 75%; animation-duration: 22s; animation-delay: 3s;">🦈</div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🐠 Fish Species Classifier</h1>
+            <p>Upload an image to identify the fish species using AI</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">🎣</div>
+                <div class="upload-text">Drop your fish image here</div>
+                <div class="upload-hint">or click to browse (JPG, PNG, JPEG)</div>
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg">
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <img id="previewImage" class="preview-image">
+            </div>
+
+            <div style="text-align: center;">
+                <button class="btn" id="predictBtn" disabled>🔍 Identify Fish Species</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p class="loading-text">🐠 Analyzing image with AI models...</p>
+            </div>
+
+            <div class="alert alert-error" id="alertError"></div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="result-header">
+                <div style="font-size: 3rem; margin-bottom: 15px;" id="resultEmoji">🐟</div>
+                <div class="binary-result" id="binaryResult"></div>
+                <div class="final-prediction" id="finalPrediction"></div>
+                <div class="confidence-badge" id="confidenceBadge"></div>
+            </div>
+
+            <div id="modelPredictionsContainer" style="display: none;">
+                <h3 style="color: #003d5c; margin-bottom: 20px; text-align: center;">📊 Individual Model Predictions</h3>
+                <div class="model-predictions" id="modelPredictions"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const previewImage = document.getElementById('previewImage');
+        const predictBtn = document.getElementById('predictBtn');
+        const loading = document.getElementById('loading');
+        const resultsSection = document.getElementById('resultsSection');
+        const alertError = document.getElementById('alertError');
+
+        let selectedFile = null;
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', e => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) handleFile(file);
+            else showError('Please upload a valid image file (JPG, PNG, JPEG)');
+        });
+
+        fileInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) return showError('Please upload a valid image file');
+            if (file.size > 10 * 1024 * 1024) return showError('File size must be less than 10MB');
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = e => {
+                previewImage.src = e.target.result;
+                previewSection.style.display = 'block';
+                predictBtn.disabled = false;
+                resultsSection.style.display = 'none';
+                hideError();
+            };
+            reader.onerror = () => showError('Error reading file. Please try again.');
+            reader.readAsDataURL(file);
+        }
+
+        predictBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            predictBtn.disabled = true;
+            loading.style.display = 'block';
+            resultsSection.style.display = 'none';
+            hideError();
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            try {
+                const response = await fetch('/predict', { method: 'POST', body: formData });
+                if (!response.ok) throw new Error(response.status);
+                const data = await response.json();
+                if (data.error) showError(data.error);
+                else displayResults(data);
+            } catch (e) {
+                showError('Connection error: ' + e.message);
+            } finally {
+                loading.style.display = 'none';
+                predictBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            document.getElementById('resultEmoji').textContent = data.is_fish ? '🐟' : '❌';
+            document.getElementById('binaryResult').textContent =
+                `Binary Model: ${data.is_fish ? 'Fish Detected ✓' : 'Not a Fish ✗'} (${(data.binary_confidence * 100).toFixed(1)}%)`;
+            document.getElementById('finalPrediction').textContent = data.final_prediction;
+            document.getElementById('confidenceBadge').textContent =
+                `${(data.confidence * 100).toFixed(1)}% Confidence`;
+
+            const container = document.getElementById('modelPredictionsContainer');
+            const list = document.getElementById('modelPredictions');
+            if (data.is_fish && Object.keys(data.model_predictions).length) {
+                container.style.display = 'block';
+                list.innerHTML = '';
+                Object.entries(data.model_predictions).forEach(([name, p]) => {
+                    const card = document.createElement('div');
+                    card.className = 'model-card';
+                    card.innerHTML = `
+                        <div class="model-name">${name}</div>
+                        <div class="model-result">${p.class}</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width:${p.confidence * 100}%"></div>
+                        </div>
+                        <div style="text-align:right;font-size:0.9rem;">${(p.confidence * 100).toFixed(1)}%</div>`;
+                    list.appendChild(card);
+                });
+            } else container.style.display = 'none';
+
+            resultsSection.style.display = 'block';
+            setTimeout(() => resultsSection.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
+
+        function showError(msg) {
+            alertError.textContent = '⚠️ ' + msg;
+            alertError.style.display = 'block';
+        }
+
+        function hideError() {
+            alertError.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
